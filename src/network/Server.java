@@ -26,6 +26,11 @@ public class Server {
         private String clientName;
         private String receivedData;
 
+        /**
+         * Processes requests and data from client socket on a new thread when ServerSock accepts connection
+         * to prevent network IO blocking.
+         * @param socket The server side socket for communicating with the client socket.
+         */
         public ClientHandler(Socket socket){
             this.socket = socket;
         }
@@ -40,8 +45,7 @@ public class Server {
                 while(true){
                     clientName = input.nextLine().toUpperCase();
                     if(clientDictionairy.containsKey(clientName)){
-                        output.print(clientName + " IS ALREADY TAKEN \nENTER USERNAME: ");
-                        clientName = input.nextLine().toUpperCase();
+                        output.println("USERNAME " + "'" + clientName.toLowerCase() + "'" +" is taken!");
                     } else{
                         clientDictionairy.put(clientName, output);
                         output.println(clientName + " has joined the chat!");
@@ -49,23 +53,24 @@ public class Server {
                     }
                 }
 
-                // message from server indicating how many clients are connected
                 users ++;
-                if(users == 1){
-                    System.out.println(users +  " CLIENT CONNECTED");
-                } else if(users >= 2){
-                    System.out.println(users +  " CLIENTS CONNECTED");
-                }
+                printActiveClients();
 
                 while(true){
                     receivedData = input.nextLine();
                     if(receivedData.equals("``quit")){
-                        break;
+                        clientDictionairy.remove(clientName);
+                        if(clientDictionairy.size() >= 1){
+                            for(String name : clientDictionairy.keySet()){
+                                clientDictionairy.get(name).println(clientName + " has left the chat!");
+                                break;
+                            }
+                        }
                     }
                     for(String name : clientDictionairy.keySet()){
-                      if(!name.equals(clientName)){
-                          clientDictionairy.get(name).println(name + " ->> " + receivedData);
-                      }
+                        if(!name.equals(clientName)){
+                            clientDictionairy.get(name).println(clientName + " ->> " + receivedData);
+                        }
                     }
 
                 }
@@ -74,9 +79,22 @@ public class Server {
             } finally {
                 try{
                     socket.close();
+                    users--;
+                    printActiveClients();
                 } catch(IOException e){
                     System.out.println("CLIENT HANDLER - ERROR CLOSING SOCKET: " + e.getMessage());
                 }
+            }
+        }
+
+        /**
+         * Prints the number of clients currently connected to server.
+         */
+        public static void printActiveClients(){
+            if(users == 1){
+                System.out.println(users +  " CLIENT CONNECTED");
+            } else if(users >= 2){
+                System.out.println(users +  " CLIENTS CONNECTED");
             }
         }
     }
